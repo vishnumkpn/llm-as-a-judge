@@ -260,7 +260,7 @@ with st.sidebar:
         help="The average score the output must achieve to stop the loop."
     )
     max_iterations = st.number_input(
-        "Max Iterations", 1, 10, 3,
+        "Max Iterations", 1, 50, 3,
         help="The maximum number of refinement cycles."
     )
     initial_temperature = st.slider(
