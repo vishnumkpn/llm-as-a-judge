@@ -10,6 +10,6 @@ This feedback is not just for review, it's used to create a new, refined prompt 
 
 - Initially the critique model's feedback and scores werent usable and predictable, so I later on added a line to the critique prompt outlining the expected ouput format (json), fixing the issue.
 
-- I initially wanted to display the results as they were being processed in a ```st.status``` which is a temporary element, I had to work around by initially showing the a "Processing..." text and showing the results the ```st.expander``` element which is a permanent element
+- I initially wanted to display the results as they were being processed in a ```st.status``` which is a temporary element, I had to work around by showing  the ```Processing...``` text and showing the results the ```st.expander``` element which is a permanent element
 
 - Based on the number of max iterations, we are making a lot of API calls to Groq, and I hit the rate limit, so I had to introduce a pause for 1 second after each iterations
