@@ -15,14 +15,14 @@ except Exception as e:
     )
     st.stop()
 
-# --- System Prompt ---
+# draft prompt
 GENERATOR_SYSTEM_PROMPT = """
 You are a helpful writing assistant named Gemma. Your task is to generate text based on user requests.
 You will be given a prompt and are expected to produce a high-quality, relevant response.
 In subsequent turns, you may receive feedback to refine your previous output. Use this feedback to improve your next response.
 """
 
-# This is the prompt that instructs the Critique model on how to behave. returns json object with scores
+# Critique model prompt, describes critique behavior,returns json object with scores
 CRITIQUE_SYSTEM_PROMPT = """
 You are a meticulous and objective critique assistant named LLaMA.
 Your purpose is to evaluate a given text based on a set of criteria.
@@ -43,8 +43,6 @@ The JSON object must have the following structure:
 }
 """
 
-
-# --- Core Functions ---
 #the criteria list
 def parse_list_input(input_string, data_type=str):
     """Helper function to parse comma-separated strings from text areas."""
@@ -70,7 +68,7 @@ def run_iteration_loop(system_prompt, user_message, criteria_list, threshold_sco
         iteration_data = {}
 
         with st.status(f"Processing Iteration {iteration_num}...", expanded=True) as status:
-            # --- 1. GENERATE ---
+            # generate output for user
             status.update(label="Step 1: Generator (Gemma) is creating the draft...")
             generator_messages = [
                 {"role": "system", "content": system_prompt},
@@ -90,7 +88,7 @@ def run_iteration_loop(system_prompt, user_message, criteria_list, threshold_sco
                 status.update(label="Error in Generation", state="error")
                 break
 
-            # --- 2. CRITIQUE ---
+            # feedback generated
             status.update(label="Step 2: Critique (LLaMA) is evaluating the draft...")
             critique_user_prompt = f"""
             Please evaluate the following text based on these criteria: {', '.join(criteria_list)}.
@@ -121,7 +119,7 @@ def run_iteration_loop(system_prompt, user_message, criteria_list, threshold_sco
                 status.update(label="Error in Critique", state="error")
                 break
 
-            # --- 3. PARSE & EVALUATE ---
+            # evaluate
             status.update(label="Step 3: Parsing critique and checking threshold...")
             try:
                 json_match = re.search(r'\{.*\}', critique_output_text, re.DOTALL)
@@ -141,11 +139,11 @@ def run_iteration_loop(system_prompt, user_message, criteria_list, threshold_sco
                 status.update(label="Error in Parsing", state="error")
                 break
 
-            # --- 4. DECISION & REFINEMENT ---
+            # decusion
             average_score = sum(score_values) / len(score_values) if score_values else 0
             meets_threshold = average_score >= threshold_score
             
-            # Populate the iteration_data dictionary
+            # iteration data to be displayed
             iteration_data = {
                 "iteration": iteration_num,
                 "generator_prompt": current_generator_prompt,
@@ -169,7 +167,7 @@ def run_iteration_loop(system_prompt, user_message, criteria_list, threshold_sco
             st.success(exit_reason)
             break
         
-        # Prepare for the next loop
+        # next loop input
         st.write("Threshold not met. Refining prompt for next iteration...")
         current_generator_prompt = f"""
         Your previous attempt was not sufficient. Please refine it based on the following feedback.
@@ -189,7 +187,7 @@ def run_iteration_loop(system_prompt, user_message, criteria_list, threshold_sco
         """
         current_temp = suggested_temp
 
-    # Loop finished
+    # loop end
     if not final_output:
         if st.session_state.history:
              final_output = st.session_state.history[-1]["generated_text"]
@@ -224,7 +222,7 @@ def display_iteration_details(data):
         st.json(data['critique_scores'])
 
 
-# --- Streamlit UI ---
+# streamlit
 
 st.set_page_config(layout="wide", page_title="LLM as a judge System")
 st.title("LLM as a judge Text Refinement System")
@@ -236,7 +234,7 @@ if 'history' not in st.session_state:
 if 'final_output' not in st.session_state:
     st.session_state.final_output = None
 
-# --- Sidebar for Inputs ---
+# input sidebar
 with st.sidebar:
     st.header("System Configuration")
 
@@ -277,25 +275,25 @@ with st.sidebar:
     
     start_button = st.button("Start Refinement Process", type="primary")
 
-# --- Main Display Area ---
+# ui main display
 if start_button:
-    # Parse and validate inputs
+    # parse inputs
     criteria = parse_list_input(criteria_str)
     if not user_prompt or not criteria:
         st.error("Please provide a User Message and at least one Criterion.")
     else:
-        # Clear previous results
+        # clear previous results
         st.session_state.history = []
         st.session_state.final_output = None
         
-        # Run the main loop
+        # main loop run
         with st.container():
             run_iteration_loop(system_prompt_gemma, user_prompt, criteria, threshold, max_iterations, initial_temperature)
 
-# Display final result after the loop concludes
+# final result
 if st.session_state.final_output:
     st.divider()
-    st.header("🏆 Final Result")
+    st.header("Final Result")
     st.info(st.session_state.final_output['reason'])
     st.success("Final Generated Text:")
     st.markdown(st.session_state.final_output['text'])
